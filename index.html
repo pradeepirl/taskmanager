@@ -8,30 +8,34 @@
 </head>
 <body>
     <div class="container">
-        <h1>Task Manager</h1>
-        <form id="taskForm">
-            <input type="text" id="taskName" placeholder="Task Name" required>
-            <input type="text" id="category" placeholder="Category" required>
-            <input type="number" id="estimatedTime" placeholder="Estimated Time (minutes)" required>
-            <select id="priority" required>
-                <option value="1">1 - Urgent</option>
-                <option value="2">2 - Important</option>
-                <option value="3">3 - Can Wait</option>
-                <option value="4">4 - Planned</option>
-            </select>
-            <button type="submit">Add Task</button>
-            <button type="button" id="voiceInput">🎤 Voice Input</button>
-        </form>
-        <h2>Main Task List</h2>
-        <div id="taskList"></div>
-        <div class="spreadsheet-container">
-            <div class="spreadsheet-section">
-                <h2>Pending Tasks Spreadsheet</h2>
-                <div id="pendingList"></div>
+        <div class="main-layout">
+            <div class="left-column">
+                <h1>Task Manager</h1>
+                <form id="taskForm">
+                    <input type="text" id="taskName" placeholder="Task Name" required>
+                    <input type="text" id="category" placeholder="Category" required>
+                    <input type="number" id="estimatedTime" placeholder="Estimated Time (minutes)" required>
+                    <select id="priority" required>
+                        <option value="1">1 - Urgent</option>
+                        <option value="2">2 - Important</option>
+                        <option value="3">3 - Can Wait</option>
+                        <option value="4">4 - Planned</option>
+                    </select>
+                    <button type="submit">Add Task</button>
+                    <button type="button" id="voiceInput">🎤 Voice Input</button>
+                </form>
+                <h2>Main Task List</h2>
+                <div id="taskList"></div>
             </div>
-            <div class="spreadsheet-section">
-                <h2>Completed Tasks Spreadsheet</h2>
-                <div id="completedList"></div>
+            <div class="right-column">
+                <div class="spreadsheet-section">
+                    <h2>Pending Tasks Spreadsheet</h2>
+                    <div id="pendingList"></div>
+                </div>
+                <div class="spreadsheet-section">
+                    <h2>Completed Tasks Spreadsheet</h2>
+                    <div id="completedList"></div>
+                </div>
             </div>
         </div>
     </div>
