@@ -7,6 +7,7 @@ body {
 
 .main-container {
     display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
@@ -14,15 +15,19 @@ body {
 
 .left-column {
     flex: 1;
-    min-width: 0;
+    min-width: 300px; /* Ensure it doesn’t shrink too much */
+    max-width: 50%; /* Prevent it from taking too much space */
+    box-sizing: border-box;
 }
 
 .right-column {
     flex: 1;
-    min-width: 0;
+    min-width: 300px;
+    max-width: 50%;
     display: flex;
     flex-direction: row;
     gap: 20px;
+    box-sizing: border-box;
 }
 
 .container {
@@ -90,7 +95,7 @@ button:hover {
 .task button.edit { background-color: #6f42c1; }
 .task button.save { background-color: #28a745; }
 .task button.move { background-color: #20c997; }
-.task button.move-pending { background-color: #ff9800; } /* New button style for Move to Pending */
+.task button.move-pending { background-color: #ff9800; }
 
 .task input[type="number"] { width: 60px; margin-right: 5px; }
 
@@ -140,15 +145,4 @@ button:hover {
 }
 
 .spreadsheet th {
-    background-color: #f2f2f2;
-}
-
-.spreadsheet-section {
-    flex: 1;
-    min-width: 0;
-}
-
-.spreadsheet-section h2 {
-    font-size: 1.2em;
-    margin-bottom: 10px;
-}
+    background-color: #
