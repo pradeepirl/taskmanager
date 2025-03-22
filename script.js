@@ -320,4 +320,31 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     setInterval(() => {
-        tasks.forEach((task,
+        tasks.forEach((task, index) => {
+            if (task.status === 'In Progress') {
+                const start = new Date(task.startTime);
+                const now = new Date();
+                task.timeSoFar = Math.floor((now - start) / 1000);
+                let timeLeft = task.estimatedTime - task.timeSoFar;
+                if (timeLeft < 0) timeLeft = 0;
+                const endTime = new Date(now.getTime() + timeLeft * 1000);
+
+                const timeSoFarSpan = document.getElementById(`timeSoFar${index}`);
+                const timeLeftSpan = document.getElementById(`timeLeft${index}`);
+                const sendTimeSpan = document.getElementById(`sendTime${index}`);
+                const endTimeSpan = document.getElementById(`endTime${index}`);
+
+                if (timeSoFarSpan) timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
+                if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
+                if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
+                if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
+            }
+        });
+        saveTasks();
+    }, 1000);
+
+    function saveTasks() {
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+    }
+});
