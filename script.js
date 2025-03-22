@@ -1,12 +1,13 @@
-// Insert your Firebase config from Step 1 here
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "your-api-key",
-    authDomain: "your-project.firebaseapp.com",
-    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-    projectId: "your-project",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "your-sender-id",
-    appId: "your-app-id"
+  apiKey: "AIzaSyDT9p9Ex3qxmySEPFmnmgLQjoES9o_mre4",
+  authDomain: "taskmanagerpradeep.firebaseapp.com",
+  databaseURL: "https://taskmanagerpradeep-default-rtdb.firebaseio.com",
+  projectId: "taskmanagerpradeep",
+  storageBucket: "taskmanagerpradeep.firebasestorage.app",
+  messagingSenderId: "583740276685",
+  appId: "1:583740276685:web:dcbbaed51fca1b54fd4e84",
+  measurementId: "G-4J1F57G4M2"
 };
 firebase.initializeApp(firebaseConfig);
 
@@ -230,4 +231,106 @@ document.addEventListener('DOMContentLoaded', () => {
                 tasks[index].pauseStart = null;
             }
             tasks[index].status = 'Completed';
-            tasks
+            tasks[index].endTime = new Date().toISOString();
+            completedTasksRef.push(tasks[index]);
+            tasksRef.child(tasks[index].firebaseId).remove();
+            tasks.splice(index, 1);
+        }
+    };
+
+    window.restartTask = function(index) {
+        tasks[index].startTime = new Date().toISOString();
+        tasks[index].timeSoFar = 0;
+        tasks[index].totalPauseTime = 0;
+        tasks[index].pauseCount = 0;
+        tasks[index].pauseStart = null;
+        tasks[index].status = 'In Progress';
+        updateTask(index);
+    };
+
+    window.editTask = function(index) {
+        editingIndex = index;
+        renderTasks();
+    };
+
+    window.saveTask = function(index) {
+        const newName = document.getElementById(`editName${index}`).value;
+        const newCategory = document.getElementById(`editCategory${index}`).value;
+        const newEstimatedTime = parseInt(document.getElementById(`editEstimatedTime${index}`).value) * 60;
+        const newPriority = parseInt(document.getElementById(`editPriority${index}`).value);
+
+        tasks[index].name = newName;
+        tasks[index].category = newCategory;
+        tasks[index].estimatedTime = newEstimatedTime;
+        tasks[index].priority = newPriority;
+
+        editingIndex = null;
+        updateTask(index);
+    };
+
+    window.extendTime = function(index) {
+        const extendInput = document.getElementById(`extendTime${index}`);
+        const additionalTime = parseInt(extendInput.value) * 60;
+        if (additionalTime > 0) {
+            tasks[index].estimatedTime += additionalTime;
+            updateTask(index);
+        }
+        extendInput.value = '';
+    };
+
+    window.nextTask = function(index) {
+        const completedTask = completedTasks[index];
+        const newTask = {
+            name: `Next: ${completedTask.name}`,
+            category: completedTask.category,
+            startTime: new Date().toISOString(),
+            estimatedTime: completedTask.estimatedTime,
+            priority: completedTask.priority,
+            status: 'Pending',
+            timeSoFar: 0,
+            totalPauseTime: 0,
+            pauseCount: 0,
+            pauseStart: null
+        };
+        tasksRef.push(newTask);
+    };
+
+    window.deleteTask = function(index) {
+        completedTasksRef.child(completedTasks[index].firebaseId).remove();
+        completedTasks.splice(index, 1);
+    };
+
+    window.moveToMain = function(index) {
+        tasks[index].status = 'In Progress';
+        tasks[index].startTime = new Date().toISOString();
+        updateTask(index);
+    };
+
+    function updateTask(index) {
+        tasksRef.child(tasks[index].firebaseId).set(tasks[index]);
+    }
+
+    setInterval(() => {
+        tasks.forEach((task, index) => {
+            if (task.status === 'In Progress') {
+                const start = new Date(task.startTime);
+                const now = new Date();
+                task.timeSoFar = Math.floor((now - start) / 1000);
+                let timeLeft = task.estimatedTime - task.timeSoFar;
+                if (timeLeft < 0) timeLeft = 0;
+                const endTime = new Date(now.getTime() + timeLeft * 1000);
+
+                const timeSoFarSpan = document.getElementById(`timeSoFar${index}`);
+                const timeLeftSpan = document.getElementById(`timeLeft${index}`);
+                const sendTimeSpan = document.getElementById(`sendTime${index}`);
+                const endTimeSpan = document.getElementById(`endTime${index}`);
+
+                if (timeSoFarSpan) timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
+                if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
+                if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
+                if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
+                updateTask(index);
+            }
+        });
+    }, 1000);
+});
