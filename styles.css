@@ -1,3 +1,5 @@
+css
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -5,9 +7,27 @@ body {
     padding: 20px;
 }
 
-.container {
-    max-width: 1200px; /* Increased to accommodate two columns */
+.main-container {
+    display: flex;
+    gap: 20px;
+    max-width: 1200px;
     margin: 0 auto;
+}
+
+.left-column {
+    flex: 1;
+    min-width: 0;
+}
+
+.right-column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.container {
     background: white;
     padding: 20px;
     border-radius: 5px;
@@ -124,30 +144,13 @@ button:hover {
     background-color: #f2f2f2;
 }
 
-/* New styles for two-column layout */
-.main-layout {
-    display: flex;
-    gap: 20px;
-}
-
-.left-column {
-    flex: 3; /* Takes 60% of the space */
-    min-width: 0;
-}
-
-.right-column {
-    flex: 2; /* Takes 40% of the space */
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
-}
-
 .spreadsheet-section {
     flex: 1;
+    min-width: 0;
 }
 
 .spreadsheet-section h2 {
     font-size: 1.2em;
     margin-bottom: 10px;
 }
+
