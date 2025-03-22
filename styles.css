@@ -123,3 +123,21 @@ button:hover {
 .spreadsheet th {
     background-color: #f2f2f2;
 }
+
+/* New styles for side-by-side layout */
+.spreadsheet-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.spreadsheet-section {
+    flex: 1;
+    min-width: 0; /* Prevents overflow */
+}
+
+.spreadsheet-section h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
