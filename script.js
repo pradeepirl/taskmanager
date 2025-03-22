@@ -1,153 +1,97 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-}
+document.addEventListener('DOMContentLoaded', () => {
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+    const pendingList = document.getElementById('pendingList');
+    const completedList = document.getElementById('completedList');
+    const voiceInputBtn = document.getElementById('voiceInput');
+    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+    let editingIndex = null;
 
-.container {
-    max-width: 1200px; /* Increased to accommodate two columns */
-    margin: 0 auto;
-    background: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
+    // Initialize missing fields
+    tasks = tasks.map(task => ({
+        ...task,
+        totalPauseTime: task.totalPauseTime || 0,
+        pauseCount: task.pauseCount || 0,
+        pauseStart: task.pauseStart || null
+    }));
 
-h1, h2 {
-    text-align: center;
-}
+    // Load tasks
+    renderTasks();
 
-form {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
+    // Add new task
+    taskForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        addTask();
+    });
 
-input, select {
-    padding: 5px;
-    flex: 1;
-}
+    // Voice input
+    voiceInputBtn.addEventListener('click', () => {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.start();
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            const parts = transcript.split(' ');
+            const taskName = parts.slice(0, -3).join(' ');
+            const category = parts[parts.length - 3];
+            const time = parseInt(parts[parts.length - 2]) || 5;
+            document.getElementById('taskName').value = taskName;
+            document.getElementById('category').value = category;
+            document.getElementById('estimatedTime').value = time;
+            addTask();
+        };
+        recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
+    });
 
-button {
-    padding: 5px 10px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
+    function addTask() {
+        const taskName = document.getElementById('taskName').value;
+        const category = document.getElementById('category').value;
+        const estimatedTime = parseInt(document.getElementById('estimatedTime').value) * 60;
+        const priority = parseInt(document.getElementById('priority').value);
+        const startTime = new Date().toISOString();
+        const task = {
+            name: taskName,
+            category,
+            startTime,
+            estimatedTime,
+            priority,
+            status: 'Pending',
+            timeSoFar: 0,
+            totalPauseTime: 0,
+            pauseCount: 0,
+            pauseStart: null
+        };
+        tasks.push(task);
+        saveTasks();
+        renderTasks();
+        taskForm.reset();
+    }
 
-button:hover {
-    background-color: #218838;
-}
+    function renderTasks() {
+        taskList.innerHTML = '';
+        pendingList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Priority</th><th>Action</th></tr></table>';
+        completedList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Start</th><th>End</th><th>Paused</th><th>Action</th></tr></table>';
 
-#voiceInput {
-    background-color: #ff4500;
-}
+        const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
+        const pendingTasks = tasks.filter(task => task.status === 'Pending');
 
-.task {
-    border-bottom: 1px solid #ddd;
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 3px;
-}
+        activeTasks.forEach((task, index) => renderTask(task, index, taskList));
+        pendingTasks.forEach(task => renderPendingTask(task));
+        completedTasks.forEach((task, index) => renderCompletedTask(task, index));
+    }
 
-.task.completed {
-    opacity: 0.7;
-}
+    function renderTask(task, index, container) {
+        const taskDiv = document.createElement('div');
+        const categoryClass = getCategoryClass(task.category);
+        taskDiv.className = `task ${categoryClass} ${task.status === 'Completed' ? 'completed' : ''}`;
 
-.task.category-work { background-color: #cce5ff; }
-.task.category-personal { background-color: #d4edda; }
-.task.category-urgent { background-color: #f8d7da; }
-.task.category-learning { background-color: #fff3cd; }
-.task.category-default { background-color: #e2e3e5; }
-
-.task button { background-color: #007bff; margin-right: 5px; }
-.task button.complete { background-color: #dc3545; }
-.task button.extend { background-color: #ffc107; }
-.task button.pause { background-color: #6c757d; }
-.task button.next { background-color: #17a2b8; }
-.task button.delete { background-color: #dc3545; }
-.task button.restart { background-color: #fd7e14; }
-.task button.edit { background-color: #6f42c1; }
-.task button.save { background-color: #28a745; }
-.task button.move { background-color: #20c997; }
-
-.task input[type="number"] { width: 60px; margin-right: 5px; }
-
-.time-left {
-    font-size: 1.5em;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    background-color: #000000;
-    color: #00ff00;
-    font-weight: bold;
-    padding: 5px 10px;
-    border-radius: 3px;
-}
-
-.clock-icon { font-size: 1.2em; color: #00ff00; }
-
-.edit-form {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-top: 10px;
-}
-
-.edit-form input, .edit-form select { width: 100%; }
-
-.completion-note {
-    font-size: 0.9em;
-    color: #555;
-    margin-top: 5px;
-    padding: 5px;
-    background-color: #f1f1f1;
-    border-radius: 3px;
-}
-
-.spreadsheet {
-    margin-top: 10px;
-    border-collapse: collapse;
-    width: 100%;
-}
-
-.spreadsheet th, .spreadsheet td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-.spreadsheet th {
-    background-color: #f2f2f2;
-}
-
-/* New styles for two-column layout */
-.main-layout {
-    display: flex;
-    gap: 20px;
-}
-
-.left-column {
-    flex: 3; /* Takes 60% of the space */
-    min-width: 0;
-}
-
-.right-column {
-    flex: 2; /* Takes 40% of the space */
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
-}
-
-.spreadsheet-section {
-    flex: 1;
-}
-
-.spreadsheet-section h2 {
-    font-size: 1.2em;
-    margin-bottom: 10px;
-}
+        const startDate = new Date(task.startTime);
+        const sendTime = new Date(startDate.getTime() + task.estimatedTime * 1000);
+        let timeLeft = task.estimatedTime - task.timeSoFar;
+        if (timeLeft < 0) timeLeft = 0;
+        const endTime = task.status === 'In Progress' ? new Date(Date.now() + timeLeft * 1000) : sendTime;
+        const pauseMinutes = Math.floor(task.totalPauseTime / 60);
+        const pauseSeconds = task.totalPauseTime % 60;
+        const formattedPauseTime = `${pauseMinutes}:${pauseSeconds < 10 ? '0' : ''}${pauseSeconds}`;
+        const priorityLabel = { 1: 'Urgent', 2: 'Important', 3: 'Can Wait', 4: 'Planned' }[
