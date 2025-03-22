@@ -32,21 +32,4 @@ body {
     flex-direction: row;
     gap: 20px;
     box-sizing: border-box;
-    padding-left: 10px; /* Add padding to prevent overlap */
-}
-
-.container {
-    background: white;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    box-sizing: border-box;
-}
-
-h1, h2 {
-    text-align: center;
-}
-
-form {
-    display: flex;
-    gap
+    padding
