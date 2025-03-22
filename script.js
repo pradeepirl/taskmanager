@@ -1,333 +1,143 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const taskForm = document.getElementById('taskForm');
-    const taskList = document.getElementById('taskList');
-    const pendingList = document.getElementById('pendingList');
-    const completedList = document.getElementById('completedList');
-    const voiceInputBtn = document.getElementById('voiceInput');
-    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
-    let editingIndex = null;
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
 
-    // Initialize missing fields
-    tasks = tasks.map(task => ({
-        ...task,
-        totalPauseTime: task.totalPauseTime || 0,
-        pauseCount: task.pauseCount || 0,
-        pauseStart: task.pauseStart || null
-    }));
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
 
-    // Load tasks
-    renderTasks();
+h1, h2 {
+    text-align: center;
+}
 
-    // Add new task
-    taskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        addTask();
-    });
+form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-    // Voice input
-    voiceInputBtn.addEventListener('click', () => {
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
-        recognition.start();
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript.toLowerCase();
-            const parts = transcript.split(' ');
-            const taskName = parts.slice(0, -3).join(' ');
-            const category = parts[parts.length - 3];
-            const time = parseInt(parts[parts.length - 2]) || 5; // Default to 5 if not parsed
-            document.getElementById('taskName').value = taskName;
-            document.getElementById('category').value = category;
-            document.getElementById('estimatedTime').value = time;
-            addTask();
-        };
-        recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
-    });
+input, select {
+    padding: 5px;
+    flex: 1;
+}
 
-    function addTask() {
-        const taskName = document.getElementById('taskName').value;
-        const category = document.getElementById('category').value;
-        const estimatedTime = parseInt(document.getElementById('estimatedTime').value) * 60;
-        const priority = parseInt(document.getElementById('priority').value);
-        const startTime = new Date().toISOString();
-        const task = {
-            name: taskName,
-            category,
-            startTime,
-            estimatedTime,
-            priority,
-            status: 'Pending',
-            timeSoFar: 0,
-            totalPauseTime: 0,
-            pauseCount: 0,
-            pauseStart: null
-        };
-        tasks.push(task);
-        saveTasks();
-        renderTasks();
-        taskForm.reset();
-    }
+button {
+    padding: 5px 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
 
-    function renderTasks() {
-        taskList.innerHTML = '';
-        pendingList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Priority</th><th>Action</th></tr></table>';
-        completedList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Start</th><th>End</th><th>Paused</th></tr></table>';
+button:hover {
+    background-color: #218838;
+}
 
-        const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
-        const pendingTasks = tasks.filter(task => task.status === 'Pending');
+#voiceInput {
+    background-color: #ff4500;
+}
 
-        activeTasks.forEach((task, index) => renderTask(task, tasks.indexOf(task), taskList));
-        pendingTasks.forEach(task => renderPendingTask(task));
-        completedTasks.forEach(task => renderCompletedTask(task));
-    }
+.task {
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 3px;
+}
 
-    function renderTask(task, index, container) {
-        const taskDiv = document.createElement('div');
-        const categoryClass = getCategoryClass(task.category);
-        taskDiv.className = `task ${categoryClass} ${task.status === 'Completed' ? 'completed' : ''}`;
+.task.completed {
+    opacity: 0.7;
+}
 
-        const startDate = new Date(task.startTime);
-        const sendTime = new Date(startDate.getTime() + task.estimatedTime * 1000);
-        let timeLeft = task.estimatedTime - task.timeSoFar;
-        if (timeLeft < 0) timeLeft = 0;
-        const endTime = task.status === 'In Progress' ? new Date(Date.now() + timeLeft * 1000) : sendTime;
-        const pauseMinutes = Math.floor(task.totalPauseTime / 60);
-        const pauseSeconds = task.totalPauseTime % 60;
-        const formattedPauseTime = `${pauseMinutes}:${pauseSeconds < 10 ? '0' : ''}${pauseSeconds}`;
-        const priorityLabel = { 1: 'Urgent', 2: 'Important', 3: 'Can Wait', 4: 'Planned' }[task.priority];
+.task.category-work { background-color: #cce5ff; }
+.task.category-personal { background-color: #d4edda; }
+.task.category-urgent { background-color: #f8d7da; }
+.task.category-learning { background-color: #fff3cd; }
+.task.category-default { background-color: #e2e3e5; }
 
-        if (editingIndex === index) {
-            taskDiv.innerHTML = `
-                <div class="edit-form">
-                    <input type="text" id="editName${index}" value="${task.name}">
-                    <input type="text" id="editCategory${index}" value="${task.category}">
-                    <input type="number" id="editEstimatedTime${index}" value="${task.estimatedTime / 60}" min="1">
-                    <select id="editPriority${index}">
-                        <option value="1" ${task.priority === 1 ? 'selected' : ''}>1 - Urgent</option>
-                        <option value="2" ${task.priority === 2 ? 'selected' : ''}>2 - Important</option>
-                        <option value="3" ${task.priority === 3 ? 'selected' : ''}>3 - Can Wait</option>
-                        <option value="4" ${task.priority === 4 ? 'selected' : ''}>4 - Planned</option>
-                    </select>
-                    <button class="save" onclick="saveTask(${index})">Save</button>
-                </div>
-            `;
-        } else {
-            taskDiv.innerHTML = `
-                <strong>${task.name}</strong> (${task.category}) - Priority: ${task.priority} (${priorityLabel})<br>
-                Start: ${startDate.toLocaleString()}<br>
-                Est. Time: ${task.estimatedTime / 60} min | Send Time: <span id="sendTime${index}">${sendTime.toLocaleString()}</span><br>
-                Status: ${task.status} | Time So Far: <span id="timeSoFar${index}">${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}</span><br>
-                <div class="time-left">
-                    Time Left: <span id="timeLeft${index}">${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}</span> 
-                    <span class="clock-icon">⌛</span> 
-                    End: <span id="endTime${index}">${endTime.toLocaleString()}</span>
-                </div><br>
-                <button onclick="startTask(${index})" ${task.status !== 'Pending' && task.status !== 'Paused' ? 'disabled' : ''}>Start</button>
-                <button class="pause" onclick="pauseTask(${index})" ${task.status !== 'In Progress' && task.status !== 'Paused' ? 'disabled' : ''}>${task.status === 'In Progress' ? 'Pause' : 'Resume'}</button>
-                <button class="complete" onclick="completeTask(${index})" ${task.status === 'Completed' ? 'disabled' : ''}>Complete</button>
-                <button class="restart" onclick="restartTask(${index})">Restart</button>
-                <button class="edit" onclick="editTask(${index})">Edit</button>
-                <input type="number" id="extendTime${index}" placeholder="Extend (min)" min="1">
-                <button class="extend" onclick="extendTime(${index})">Extend Time</button>
-            `;
-        }
-        container.appendChild(taskDiv);
-    }
+.task button { background-color: #007bff; margin-right: 5px; }
+.task button.complete { background-color: #dc3545; }
+.task button.extend { background-color: #ffc107; }
+.task button.pause { background-color: #6c757d; }
+.task button.next { background-color: #17a2b8; }
+.task button.delete { background-color: #dc3545; }
+.task button.restart { background-color: #fd7e14; }
+.task button.edit { background-color: #6f42c1; }
+.task button.save { background-color: #28a745; }
+.task button.move { background-color: #20c997; }
 
-    function renderPendingTask(task) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${task.name}</td>
-            <td>${task.category}</td>
-            <td>${task.priority}</td>
-            <td><button class="move" onclick="moveToMain(${tasks.indexOf(task)})">Move to Main</button></td>
-        `;
-        pendingList.querySelector('table').appendChild(row);
-    }
+.task input[type="number"] { width: 60px; margin-right: 5px; }
 
-    function renderCompletedTask(task) {
-        const row = document.createElement('tr');
-        const startDate = new Date(task.startTime);
-        const endDate = new Date(task.endTime || Date.now());
-        const pauseMinutes = Math.floor(task.totalPauseTime / 60);
-        const pauseSeconds = task.totalPauseTime % 60;
-        const formattedPauseTime = `${pauseMinutes}:${pauseSeconds < 10 ? '0' : ''}${pauseSeconds}`;
-        row.innerHTML = `
-            <td>${task.name}</td>
-            <td>${task.category}</td>
-            <td>${startDate.toLocaleString()}</td>
-            <td>${endDate.toLocaleString()}</td>
-            <td>${formattedPauseTime} (${task.pauseCount} times)</td>
-        `;
-        completedList.querySelector('table').appendChild(row);
-    }
+.time-left {
+    font-size: 1.5em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    background-color: #000000;
+    color: #00ff00;
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 3px;
+}
 
-    function getCategoryClass(category) {
-        const normalizedCategory = category.toLowerCase();
-        return {
-            'work': 'category-work',
-            'personal': 'category-personal',
-            'urgent': 'category-urgent',
-            'learning': 'category-learning'
-        }[normalizedCategory] || 'category-default';
-    }
+.clock-icon { font-size: 1.2em; color: #00ff00; }
 
-    window.startTask = function(index) {
-        if (tasks[index].status === 'Pending' || tasks[index].status === 'Paused') {
-            tasks[index].status = 'In Progress';
-            if (tasks[index].status === 'Pending') {
-                tasks[index].startTime = new Date().toISOString();
-            } else {
-                tasks[index].startTime = new Date(Date.now() - tasks[index].timeSoFar * 1000).toISOString();
-                if (tasks[index].pauseStart) {
-                    const pauseEnd = new Date();
-                    const pauseDuration = Math.floor((pauseEnd - new Date(tasks[index].pauseStart)) / 1000);
-                    tasks[index].totalPauseTime += pauseDuration;
-                    tasks[index].pauseStart = null;
-                }
-            }
-            saveTasks();
-            renderTasks();
-        }
-    };
+.edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 10px;
+}
 
-    window.pauseTask = function(index) {
-        if (tasks[index].status === 'In Progress') {
-            tasks[index].status = 'Paused';
-            tasks[index].pauseStart = new Date().toISOString();
-            tasks[index].pauseCount += 1;
-        } else if (tasks[index].status === 'Paused') {
-            tasks[index].status = 'In Progress';
-            if (tasks[index].pauseStart) {
-                const pauseEnd = new Date();
-                const pauseDuration = Math.floor((pauseEnd - new Date(tasks[index].pauseStart)) / 1000);
-                tasks[index].totalPauseTime += pauseDuration;
-                tasks[index].pauseStart = null;
-            }
-            tasks[index].startTime = new Date(Date.now() - tasks[index].timeSoFar * 1000).toISOString();
-        }
-        saveTasks();
-        renderTasks();
-    };
+.edit-form input, .edit-form select { width: 100%; }
 
-    window.completeTask = function(index) {
-        if (tasks[index].status === 'In Progress' || tasks[index].status === 'Paused') {
-            if (tasks[index].status === 'Paused' && tasks[index].pauseStart) {
-                const pauseEnd = new Date();
-                const pauseDuration = Math.floor((pauseEnd - new Date(tasks[index].pauseStart)) / 1000);
-                tasks[index].totalPauseTime += pauseDuration;
-                tasks[index].pauseStart = null;
-            }
-            tasks[index].status = 'Completed';
-            tasks[index].endTime = new Date().toISOString();
-            completedTasks.push(tasks[index]);
-            tasks.splice(index, 1);
-            saveTasks();
-            renderTasks();
-        }
-    };
+.completion-note {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 5px;
+    padding: 5px;
+    background-color: #f1f1f1;
+    border-radius: 3px;
+}
 
-    window.restartTask = function(index) {
-        tasks[index].startTime = new Date().toISOString();
-        tasks[index].timeSoFar = 0;
-        tasks[index].totalPauseTime = 0;
-        tasks[index].pauseCount = 0;
-        tasks[index].pauseStart = null;
-        tasks[index].status = 'In Progress';
-        saveTasks();
-        renderTasks();
-    };
+.spreadsheet {
+    margin-top: 10px;
+    border-collapse: collapse;
+    width: 100%;
+}
 
-    window.editTask = function(index) {
-        editingIndex = index;
-        renderTasks();
-    };
+.spreadsheet th, .spreadsheet td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
 
-    window.saveTask = function(index) {
-        const newName = document.getElementById(`editName${index}`).value;
-        const newCategory = document.getElementById(`editCategory${index}`).value;
-        const newEstimatedTime = parseInt(document.getElementById(`editEstimatedTime${index}`).value) * 60;
-        const newPriority = parseInt(document.getElementById(`editPriority${index}`).value);
+.spreadsheet th {
+    background-color: #f2f2f2;
+}
 
-        tasks[index].name = newName;
-        tasks[index].category = newCategory;
-        tasks[index].estimatedTime = newEstimatedTime;
-        tasks[index].priority = newPriority;
+/* New styles for side-by-side layout */
+.spreadsheet-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 20px;
+}
 
-        editingIndex = null;
-        saveTasks();
-        renderTasks();
-    };
+.spreadsheet-section {
+    flex: 1;
+    min-width: 0; /* Prevents overflow */
+}
 
-    window.extendTime = function(index) {
-        const extendInput = document.getElementById(`extendTime${index}`);
-        const additionalTime = parseInt(extendInput.value) * 60;
-        if (additionalTime > 0) {
-            tasks[index].estimatedTime += additionalTime;
-            saveTasks();
-            renderTasks();
-        }
-        extendInput.value = '';
-    };
-
-    window.nextTask = function(index) {
-        const completedTask = completedTasks[index];
-        const newTask = {
-            name: `Next: ${completedTask.name}`,
-            category: completedTask.category,
-            startTime: new Date().toISOString(),
-            estimatedTime: completedTask.estimatedTime,
-            priority: completedTask.priority,
-            status: 'Pending',
-            timeSoFar: 0,
-            totalPauseTime: 0,
-            pauseCount: 0,
-            pauseStart: null
-        };
-        tasks.push(newTask);
-        saveTasks();
-        renderTasks();
-    };
-
-    window.deleteTask = function(index) {
-        completedTasks.splice(index, 1);
-        saveTasks();
-        renderTasks();
-    };
-
-    window.moveToMain = function(index) {
-        tasks[index].status = 'In Progress'; // Move to main list as In Progress
-        tasks[index].startTime = new Date().toISOString();
-        saveTasks();
-        renderTasks();
-    };
-
-    setInterval(() => {
-        tasks.forEach((task, index) => {
-            if (task.status === 'In Progress') {
-                const start = new Date(task.startTime);
-                const now = new Date();
-                task.timeSoFar = Math.floor((now - start) / 1000);
-                let timeLeft = task.estimatedTime - task.timeSoFar;
-                if (timeLeft < 0) timeLeft = 0;
-                const endTime = new Date(now.getTime() + timeLeft * 1000);
-
-                const timeSoFarSpan = document.getElementById(`timeSoFar${index}`);
-                const timeLeftSpan = document.getElementById(`timeLeft${index}`);
-                const sendTimeSpan = document.getElementById(`sendTime${index}`);
-                const endTimeSpan = document.getElementById(`endTime${index}`);
-
-                if (timeSoFarSpan) timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
-                if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
-                if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
-                if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
-            }
-        });
-        saveTasks();
-    }, 1000);
-
-    function saveTasks() {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-    }
-});
+.spreadsheet-section h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
