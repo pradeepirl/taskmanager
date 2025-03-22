@@ -3,6 +3,7 @@ body {
     background-color: #f4f4f4;
     margin: 0;
     padding: 20px;
+    overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 .main-container {
@@ -11,13 +12,15 @@ body {
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .left-column {
     flex: 1;
-    min-width: 300px; /* Ensure it doesn’t shrink too much */
-    max-width: 50%; /* Prevent it from taking too much space */
+    min-width: 300px;
+    max-width: 50%;
     box-sizing: border-box;
+    padding-right: 10px; /* Add padding to prevent overlap */
 }
 
 .right-column {
@@ -28,6 +31,7 @@ body {
     flex-direction: row;
     gap: 20px;
     box-sizing: border-box;
+    padding-left: 10px; /* Add padding to prevent overlap */
 }
 
 .container {
@@ -35,6 +39,7 @@ body {
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-sizing: border-box;
 }
 
 h1, h2 {
@@ -45,11 +50,13 @@ form {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
+    flex-wrap: wrap; /* Prevent form elements from overflowing */
 }
 
 input, select {
     padding: 5px;
     flex: 1;
+    min-width: 100px; /* Ensure inputs don’t shrink too much */
 }
 
 button {
@@ -73,6 +80,7 @@ button:hover {
     padding: 10px;
     margin: 5px 0;
     border-radius: 3px;
+    word-wrap: break-word; /* Prevent text overflow */
 }
 
 .task.completed {
@@ -136,13 +144,41 @@ button:hover {
     margin-top: 10px;
     border-collapse: collapse;
     width: 100%;
+    table-layout: fixed; /* Prevent table from expanding too much */
 }
 
 .spreadsheet th, .spreadsheet td {
     border: 1px solid #ddd;
     padding: 8px;
     text-align: left;
+    word-wrap: break-word; /* Prevent text overflow */
 }
 
 .spreadsheet th {
-    background-color: #
+    background-color: #f2f2f2;
+}
+
+.spreadsheet-section {
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+}
+
+.spreadsheet-section h2 {
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+    }
+    .left-column, .right-column {
+        max-width: 100%;
+        padding: 0;
+    }
+    .right-column {
+        flex-direction: column;
+    }
+}
