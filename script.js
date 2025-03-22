@@ -1,10 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
     const taskForm = document.getElementById('taskForm');
     const taskList = document.getElementById('taskList');
+    const pendingList = document.getElementById('pendingList');
+    const completedList = document.getElementById('completedList');
+    const voiceInputBtn = document.getElementById('voiceInput');
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
     let editingIndex = null;
 
-    // Initialize missing fields for existing tasks
+    // Initialize missing fields
     tasks = tasks.map(task => ({
         ...task,
         totalPauseTime: task.totalPauseTime || 0,
@@ -12,15 +16,38 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseStart: task.pauseStart || null
     }));
 
-    // Load existing tasks
+    // Load tasks
     renderTasks();
 
     // Add new task
     taskForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        addTask();
+    });
+
+    // Voice input
+    voiceInputBtn.addEventListener('click', () => {
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US';
+        recognition.start();
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase();
+            const parts = transcript.split(' ');
+            const taskName = parts.slice(0, -3).join(' ');
+            const category = parts[parts.length - 3];
+            const time = parseInt(parts[parts.length - 2]) || 5; // Default to 5 if not parsed
+            document.getElementById('taskName').value = taskName;
+            document.getElementById('category').value = category;
+            document.getElementById('estimatedTime').value = time;
+            addTask();
+        };
+        recognition.onerror = (event) => console.error('Speech recognition error:', event.error);
+    });
+
+    function addTask() {
         const taskName = document.getElementById('taskName').value;
         const category = document.getElementById('category').value;
-        const estimatedTime = parseInt(document.getElementById('estimatedTime').value) * 60; // Convert to seconds
+        const estimatedTime = parseInt(document.getElementById('estimatedTime').value) * 60;
         const priority = parseInt(document.getElementById('priority').value);
         const startTime = new Date().toISOString();
         const task = {
@@ -39,19 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
         saveTasks();
         renderTasks();
         taskForm.reset();
-    });
-
-    // Render tasks to the page
-    function renderTasks() {
-        taskList.innerHTML = '';
-        const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
-        const completedTasks = tasks.filter(task => task.status === 'Completed');
-
-        activeTasks.forEach((task, index) => renderTask(task, tasks.indexOf(task)));
-        completedTasks.forEach((task, index) => renderTask(task, tasks.indexOf(task)));
     }
 
-    function renderTask(task, index) {
+    function renderTasks() {
+        taskList.innerHTML = '';
+        pendingList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Priority</th><th>Action</th></tr></table>';
+        completedList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Start</th><th>End</th><th>Paused</th></tr></table>';
+
+        const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
+        const pendingTasks = tasks.filter(task => task.status === 'Pending');
+
+        activeTasks.forEach((task, index) => renderTask(task, tasks.indexOf(task), taskList));
+        pendingTasks.forEach(task => renderPendingTask(task));
+        completedTasks.forEach(task => renderCompletedTask(task));
+    }
+
+    function renderTask(task, index, container) {
         const taskDiv = document.createElement('div');
         const categoryClass = getCategoryClass(task.category);
         taskDiv.className = `task ${categoryClass} ${task.status === 'Completed' ? 'completed' : ''}`;
@@ -60,21 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const sendTime = new Date(startDate.getTime() + task.estimatedTime * 1000);
         let timeLeft = task.estimatedTime - task.timeSoFar;
         if (timeLeft < 0) timeLeft = 0;
-        const endTime = task.status === 'In Progress' 
-            ? new Date(Date.now() + timeLeft * 1000) 
-            : sendTime;
-
-        const priorityLabel = {
-            1: 'Urgent',
-            2: 'Important',
-            3: 'Can Wait',
-            4: 'Planned'
-        }[task.priority];
-
-        // Format totalPauseTime correctly
+        const endTime = task.status === 'In Progress' ? new Date(Date.now() + timeLeft * 1000) : sendTime;
         const pauseMinutes = Math.floor(task.totalPauseTime / 60);
         const pauseSeconds = task.totalPauseTime % 60;
         const formattedPauseTime = `${pauseMinutes}:${pauseSeconds < 10 ? '0' : ''}${pauseSeconds}`;
+        const priorityLabel = { 1: 'Urgent', 2: 'Important', 3: 'Can Wait', 4: 'Planned' }[task.priority];
 
         if (editingIndex === index) {
             taskDiv.innerHTML = `
@@ -109,44 +129,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="edit" onclick="editTask(${index})">Edit</button>
                 <input type="number" id="extendTime${index}" placeholder="Extend (min)" min="1">
                 <button class="extend" onclick="extendTime(${index})">Extend Time</button>
-                ${task.status === 'Completed' ? `<button class="next" onclick="nextTask(${index})">Next Task</button>` : ''}
-                ${task.status === 'Completed' ? `<button class="delete" onclick="deleteTask(${index})">Delete</button>` : ''}
-                ${task.status === 'Completed' ? `
-                    <div class="completion-note">
-                        Completed: Start: ${startDate.toLocaleString()} | End: ${new Date().toLocaleString()} | 
-                        Total Paused: ${formattedPauseTime} | 
-                        Paused ${task.pauseCount} time${task.pauseCount !== 1 ? 's' : ''}
-                    </div>` : ''}
             `;
         }
-        taskList.appendChild(taskDiv);
+        container.appendChild(taskDiv);
     }
 
-    // Map categories to CSS classes
+    function renderPendingTask(task) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${task.name}</td>
+            <td>${task.category}</td>
+            <td>${task.priority}</td>
+            <td><button class="move" onclick="moveToMain(${tasks.indexOf(task)})">Move to Main</button></td>
+        `;
+        pendingList.querySelector('table').appendChild(row);
+    }
+
+    function renderCompletedTask(task) {
+        const row = document.createElement('tr');
+        const startDate = new Date(task.startTime);
+        const endDate = new Date(task.endTime || Date.now());
+        const pauseMinutes = Math.floor(task.totalPauseTime / 60);
+        const pauseSeconds = task.totalPauseTime % 60;
+        const formattedPauseTime = `${pauseMinutes}:${pauseSeconds < 10 ? '0' : ''}${pauseSeconds}`;
+        row.innerHTML = `
+            <td>${task.name}</td>
+            <td>${task.category}</td>
+            <td>${startDate.toLocaleString()}</td>
+            <td>${endDate.toLocaleString()}</td>
+            <td>${formattedPauseTime} (${task.pauseCount} times)</td>
+        `;
+        completedList.querySelector('table').appendChild(row);
+    }
+
     function getCategoryClass(category) {
         const normalizedCategory = category.toLowerCase();
-        switch (normalizedCategory) {
-            case 'work':
-                return 'category-work';
-            case 'personal':
-                return 'category-personal';
-            case 'urgent':
-                return 'category-urgent';
-            case 'learning':
-                return 'category-learning';
-            default:
-                return 'category-default';
-        }
+        return {
+            'work': 'category-work',
+            'personal': 'category-personal',
+            'urgent': 'category-urgent',
+            'learning': 'category-learning'
+        }[normalizedCategory] || 'category-default';
     }
 
-    // Start task
     window.startTask = function(index) {
         if (tasks[index].status === 'Pending' || tasks[index].status === 'Paused') {
             tasks[index].status = 'In Progress';
             if (tasks[index].status === 'Pending') {
                 tasks[index].startTime = new Date().toISOString();
             } else {
-                // Resume: Adjust startTime to continue from paused point
                 tasks[index].startTime = new Date(Date.now() - tasks[index].timeSoFar * 1000).toISOString();
                 if (tasks[index].pauseStart) {
                     const pauseEnd = new Date();
@@ -160,7 +191,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Pause/Resume task
     window.pauseTask = function(index) {
         if (tasks[index].status === 'In Progress') {
             tasks[index].status = 'Paused';
@@ -180,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    // Complete task
     window.completeTask = function(index) {
         if (tasks[index].status === 'In Progress' || tasks[index].status === 'Paused') {
             if (tasks[index].status === 'Paused' && tasks[index].pauseStart) {
@@ -190,12 +219,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 tasks[index].pauseStart = null;
             }
             tasks[index].status = 'Completed';
+            tasks[index].endTime = new Date().toISOString();
+            completedTasks.push(tasks[index]);
+            tasks.splice(index, 1);
             saveTasks();
             renderTasks();
         }
     };
 
-    // Restart task
     window.restartTask = function(index) {
         tasks[index].startTime = new Date().toISOString();
         tasks[index].timeSoFar = 0;
@@ -207,13 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    // Edit task
     window.editTask = function(index) {
         editingIndex = index;
         renderTasks();
     };
 
-    // Save edited task
     window.saveTask = function(index) {
         const newName = document.getElementById(`editName${index}`).value;
         const newCategory = document.getElementById(`editCategory${index}`).value;
@@ -230,10 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    // Extend estimated time
     window.extendTime = function(index) {
         const extendInput = document.getElementById(`extendTime${index}`);
-        const additionalTime = parseInt(extendInput.value) * 60; // Convert to seconds
+        const additionalTime = parseInt(extendInput.value) * 60;
         if (additionalTime > 0) {
             tasks[index].estimatedTime += additionalTime;
             saveTasks();
@@ -242,9 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
         extendInput.value = '';
     };
 
-    // Start a new "Next Task" from a completed task
     window.nextTask = function(index) {
-        const completedTask = tasks[index];
+        const completedTask = completedTasks[index];
         const newTask = {
             name: `Next: ${completedTask.name}`,
             category: completedTask.category,
@@ -262,16 +289,19 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    // Delete a completed task
     window.deleteTask = function(index) {
-        if (tasks[index].status === 'Completed') {
-            tasks.splice(index, 1);
-            saveTasks();
-            renderTasks();
-        }
+        completedTasks.splice(index, 1);
+        saveTasks();
+        renderTasks();
     };
 
-    // Single global timer for live updates
+    window.moveToMain = function(index) {
+        tasks[index].status = 'In Progress'; // Move to main list as In Progress
+        tasks[index].startTime = new Date().toISOString();
+        saveTasks();
+        renderTasks();
+    };
+
     setInterval(() => {
         tasks.forEach((task, index) => {
             if (task.status === 'In Progress') {
@@ -287,26 +317,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sendTimeSpan = document.getElementById(`sendTime${index}`);
                 const endTimeSpan = document.getElementById(`endTime${index}`);
 
-                if (timeSoFarSpan) {
-                    timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
-                }
-                if (timeLeftSpan) {
-                    timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
-                }
-                if (sendTimeSpan) {
-                    const sendTime = new Date(start.getTime() + task.estimatedTime * 1000);
-                    sendTimeSpan.textContent = sendTime.toLocaleString();
-                }
-                if (endTimeSpan) {
-                    endTimeSpan.textContent = endTime.toLocaleString();
-                }
+                if (timeSoFarSpan) timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
+                if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
+                if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
+                if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
             }
         });
         saveTasks();
     }, 1000);
 
-    // Save tasks to localStorage
     function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
+        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
     }
 });
