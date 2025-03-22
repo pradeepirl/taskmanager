@@ -1,5 +1,3 @@
-css
-
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f4;
@@ -92,6 +90,7 @@ button:hover {
 .task button.edit { background-color: #6f42c1; }
 .task button.save { background-color: #28a745; }
 .task button.move { background-color: #20c997; }
+.task button.move-pending { background-color: #ff9800; } /* New button style for Move to Pending */
 
 .task input[type="number"] { width: 60px; margin-right: 5px; }
 
@@ -153,4 +152,3 @@ button:hover {
     font-size: 1.2em;
     margin-bottom: 10px;
 }
-
