@@ -1,13 +1,12 @@
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Replace with your Firebase config from Firebase Console > Project Settings > Your Apps > Web App
 const firebaseConfig = {
-  apiKey: "AIzaSyDT9p9Ex3qxmySEPFmnmgLQjoES9o_mre4",
-  authDomain: "taskmanagerpradeep.firebaseapp.com",
-  databaseURL: "https://taskmanagerpradeep-default-rtdb.firebaseio.com",
-  projectId: "taskmanagerpradeep",
-  storageBucket: "taskmanagerpradeep.firebasestorage.app",
-  messagingSenderId: "583740276685",
-  appId: "1:583740276685:web:dcbbaed51fca1b54fd4e84",
-  measurementId: "G-4J1F57G4M2"
+    apiKey: "your-api-key",
+    authDomain: "your-project.firebaseapp.com",
+    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+    projectId: "your-project",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "your-sender-id",
+    appId: "your-app-id"
 };
 firebase.initializeApp(firebaseConfig);
 
@@ -85,14 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderTasks() {
         taskList.innerHTML = '';
         pendingList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Priority</th><th>Action</th></tr></table>';
-        completedList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Start</th><th>End</th><th>Paused</th></tr></table>';
+        completedList.innerHTML = '<table class="spreadsheet"><tr><th>Name</th><th>Category</th><th>Start</th><th>End</th><th>Paused</th><th>Action</th></tr></table>';
 
         const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
         const pendingTasks = tasks.filter(task => task.status === 'Pending');
 
         activeTasks.forEach((task, index) => renderTask(task, index, taskList));
         pendingTasks.forEach(task => renderPendingTask(task));
-        completedTasks.forEach(task => renderCompletedTask(task));
+        completedTasks.forEach((task, index) => renderCompletedTask(task, index));
     }
 
     function renderTask(task, index, container) {
@@ -143,6 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="edit" onclick="editTask(${index})">Edit</button>
                 <input type="number" id="extendTime${index}" placeholder="Extend (min)" min="1">
                 <button class="extend" onclick="extendTime(${index})">Extend Time</button>
+                ${task.status === 'Completed' ? `<button class="next" onclick="nextTask(${index})">Next Task</button>` : ''}
+                ${task.status === 'Completed' ? `<button class="delete" onclick="deleteTask(${index})">Delete</button>` : ''}
+                ${task.status === 'Completed' ? `<div class="completion-note">Completed: Start: ${startDate.toLocaleString()} | End: ${new Date(task.endTime).toLocaleString()} | Total Paused: ${formattedPauseTime} | Paused ${task.pauseCount} time${task.pauseCount !== 1 ? 's' : ''}</div>` : ''}
             `;
         }
         container.appendChild(taskDiv);
@@ -159,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pendingList.querySelector('table').appendChild(row);
     }
 
-    function renderCompletedTask(task) {
+    function renderCompletedTask(task, index) {
         const row = document.createElement('tr');
         const startDate = new Date(task.startTime);
         const endDate = new Date(task.endTime || Date.now());
@@ -172,6 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${startDate.toLocaleString()}</td>
             <td>${endDate.toLocaleString()}</td>
             <td>${formattedPauseTime} (${task.pauseCount} times)</td>
+            <td>
+                <button class="next" onclick="nextTask(${index})">Next Task</button>
+                <button class="delete" onclick="deleteTask(${index})">Delete</button>
+            </td>
         `;
         completedList.querySelector('table').appendChild(row);
     }
