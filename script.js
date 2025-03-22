@@ -206,4 +206,118 @@ document.addEventListener('DOMContentLoaded', () => {
             if (tasks[index].pauseStart) {
                 const pauseEnd = new Date();
                 const pauseDuration = Math.floor((pauseEnd - new Date(tasks[index].pauseStart)) / 1000);
-                tasks[index].totalPauseTime
+                tasks[index].totalPauseTime += pauseDuration;
+                tasks[index].pauseStart = null;
+            }
+            tasks[index].startTime = new Date(Date.now() - tasks[index].timeSoFar * 1000).toISOString();
+        }
+        saveTasks();
+        renderTasks();
+    };
+
+    window.completeTask = function(index) {
+        if (tasks[index].status === 'In Progress' || tasks[index].status === 'Paused') {
+            if (tasks[index].status === 'Paused' && tasks[index].pauseStart) {
+                const pauseEnd = new Date();
+                const pauseDuration = Math.floor((pauseEnd - new Date(tasks[index].pauseStart)) / 1000);
+                tasks[index].totalPauseTime += pauseDuration;
+                tasks[index].pauseStart = null;
+            }
+            tasks[index].status = 'Completed';
+            tasks[index].endTime = new Date().toISOString();
+            completedTasks.push(tasks[index]);
+            tasks.splice(index, 1);
+            saveTasks();
+            renderTasks();
+        }
+    };
+
+    window.moveToPending = function(index) {
+        if (tasks[index].status !== 'Pending') {
+            tasks[index].status = 'Pending';
+            tasks[index].timeSoFar = 0;
+            tasks[index].totalPauseTime = 0;
+            tasks[index].pauseCount = 0;
+            tasks[index].pauseStart = null;
+            saveTasks();
+            renderTasks();
+        }
+    };
+
+    window.restartTask = function(index) {
+        tasks[index].startTime = new Date().toISOString();
+        tasks[index].timeSoFar = 0;
+        tasks[index].totalPauseTime = 0;
+        tasks[index].pauseCount = 0;
+        tasks[index].pauseStart = null;
+        tasks[index].status = 'In Progress';
+        saveTasks();
+        renderTasks();
+    };
+
+    window.editTask = function(index) {
+        editingIndex = index;
+        renderTasks();
+    };
+
+    window.saveTask = function(index) {
+        const newName = document.getElementById(`editName${index}`).value;
+        const newCategory = document.getElementById(`editCategory${index}`).value;
+        const newEstimatedTime = parseInt(document.getElementById(`editEstimatedTime${index}`).value) * 60;
+        const newPriority = parseInt(document.getElementById(`editPriority${index}`).value);
+
+        tasks[index].name = newName;
+        tasks[index].category = newCategory;
+        tasks[index].estimatedTime = newEstimatedTime;
+        tasks[index].priority = newPriority;
+
+        editingIndex = null;
+        saveTasks();
+        renderTasks();
+    };
+
+    window.extendTime = function(index) {
+        const extendInput = document.getElementById(`extendTime${index}`);
+        const additionalTime = parseInt(extendInput.value) * 60;
+        if (additionalTime > 0) {
+            tasks[index].estimatedTime += additionalTime;
+            saveTasks();
+            renderTasks();
+        }
+        extendInput.value = '';
+    };
+
+    window.nextTask = function(index) {
+        const completedTask = completedTasks[index];
+        const newTask = {
+            name: `Next: ${completedTask.name}`,
+            category: completedTask.category,
+            startTime: new Date().toISOString(),
+            estimatedTime: completedTask.estimatedTime,
+            priority: completedTask.priority,
+            status: 'Pending',
+            timeSoFar: 0,
+            totalPauseTime: 0,
+            pauseCount: 0,
+            pauseStart: null
+        };
+        tasks.push(newTask);
+        saveTasks();
+        renderTasks();
+    };
+
+    window.deleteTask = function(index) {
+        completedTasks.splice(index, 1);
+        saveTasks();
+        renderTasks();
+    };
+
+    window.moveToMain = function(index) {
+        tasks[index].status = 'In Progress';
+        tasks[index].startTime = new Date().toISOString();
+        saveTasks();
+        renderTasks();
+    };
+
+    setInterval(() => {
+        tasks.forEach((task,
