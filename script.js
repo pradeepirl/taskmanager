@@ -1,23 +1,38 @@
+// Insert your Firebase config here from Step 1
+const firebaseConfig = {
+    apiKey: "your-api-key",
+    authDomain: "your-project.firebaseapp.com",
+    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+    projectId: "your-project",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "your-sender-id",
+    appId: "your-app-id"
+};
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+const tasksRef = db.ref('tasks');
+const completedTasksRef = db.ref('completedTasks');
+
 document.addEventListener('DOMContentLoaded', () => {
     const taskForm = document.getElementById('taskForm');
     const taskList = document.getElementById('taskList');
     const pendingList = document.getElementById('pendingList');
     const completedList = document.getElementById('completedList');
     const voiceInputBtn = document.getElementById('voiceInput');
-    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+    let tasks = [];
+    let completedTasks = [];
     let editingIndex = null;
 
-    // Initialize missing fields
-    tasks = tasks.map(task => ({
-        ...task,
-        totalPauseTime: task.totalPauseTime || 0,
-        pauseCount: task.pauseCount || 0,
-        pauseStart: task.pauseStart || null
-    }));
-
-    // Load tasks
-    renderTasks();
+    // Load tasks from Firebase
+    tasksRef.on('value', (snapshot) => {
+        tasks = snapshot.val() ? Object.entries(snapshot.val()).map(([id, task]) => ({ ...task, firebaseId: id })) : [];
+        renderTasks();
+    });
+    completedTasksRef.on('value', (snapshot) => {
+        completedTasks = snapshot.val() ? Object.entries(snapshot.val()).map(([id, task]) => ({ ...task, firebaseId: id })) : [];
+        renderTasks();
+    });
 
     // Add new task
     taskForm.addEventListener('submit', (e) => {
@@ -35,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const parts = transcript.split(' ');
             const taskName = parts.slice(0, -3).join(' ');
             const category = parts[parts.length - 3];
-            const time = parseInt(parts[parts.length - 2]) || 5; // Default to 5 if not parsed
+            const time = parseInt(parts[parts.length - 2]) || 5;
             document.getElementById('taskName').value = taskName;
             document.getElementById('category').value = category;
             document.getElementById('estimatedTime').value = time;
@@ -62,9 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pauseCount: 0,
             pauseStart: null
         };
-        tasks.push(task);
-        saveTasks();
-        renderTasks();
+        tasksRef.push(task);
         taskForm.reset();
     }
 
@@ -76,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeTasks = tasks.filter(task => task.status !== 'Completed').sort((a, b) => a.priority - b.priority);
         const pendingTasks = tasks.filter(task => task.status === 'Pending');
 
-        activeTasks.forEach((task, index) => renderTask(task, tasks.indexOf(task), taskList));
+        activeTasks.forEach((task, index) => renderTask(task, index, taskList));
         pendingTasks.forEach(task => renderPendingTask(task));
         completedTasks.forEach(task => renderCompletedTask(task));
     }
@@ -186,8 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tasks[index].pauseStart = null;
                 }
             }
-            saveTasks();
-            renderTasks();
+            updateTask(index);
         }
     };
 
@@ -206,8 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tasks[index].startTime = new Date(Date.now() - tasks[index].timeSoFar * 1000).toISOString();
         }
-        saveTasks();
-        renderTasks();
+        updateTask(index);
     };
 
     window.completeTask = function(index) {
@@ -220,10 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tasks[index].status = 'Completed';
             tasks[index].endTime = new Date().toISOString();
-            completedTasks.push(tasks[index]);
+            completedTasksRef.push(tasks[index]);
+            tasksRef.child(tasks[index].firebaseId).remove();
             tasks.splice(index, 1);
-            saveTasks();
-            renderTasks();
         }
     };
 
@@ -234,8 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks[index].pauseCount = 0;
         tasks[index].pauseStart = null;
         tasks[index].status = 'In Progress';
-        saveTasks();
-        renderTasks();
+        updateTask(index);
     };
 
     window.editTask = function(index) {
@@ -255,8 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tasks[index].priority = newPriority;
 
         editingIndex = null;
-        saveTasks();
-        renderTasks();
+        updateTask(index);
     };
 
     window.extendTime = function(index) {
@@ -264,8 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const additionalTime = parseInt(extendInput.value) * 60;
         if (additionalTime > 0) {
             tasks[index].estimatedTime += additionalTime;
-            saveTasks();
-            renderTasks();
+            updateTask(index);
         }
         extendInput.value = '';
     };
@@ -284,23 +291,23 @@ document.addEventListener('DOMContentLoaded', () => {
             pauseCount: 0,
             pauseStart: null
         };
-        tasks.push(newTask);
-        saveTasks();
-        renderTasks();
+        tasksRef.push(newTask);
     };
 
     window.deleteTask = function(index) {
+        completedTasksRef.child(completedTasks[index].firebaseId).remove();
         completedTasks.splice(index, 1);
-        saveTasks();
-        renderTasks();
     };
 
     window.moveToMain = function(index) {
-        tasks[index].status = 'In Progress'; // Move to main list as In Progress
+        tasks[index].status = 'In Progress';
         tasks[index].startTime = new Date().toISOString();
-        saveTasks();
-        renderTasks();
+        updateTask(index);
     };
+
+    function updateTask(index) {
+        tasksRef.child(tasks[index].firebaseId).set(tasks[index]);
+    }
 
     setInterval(() => {
         tasks.forEach((task, index) => {
@@ -321,13 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
                 if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
                 if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
+                updateTask(index);
             }
         });
-        saveTasks();
     }, 1000);
-
-    function saveTasks() {
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-        localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
-    }
 });
