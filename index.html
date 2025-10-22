@@ -7,14 +7,50 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <button class="dark-mode-toggle" id="darkModeToggle">🌙</button>
     <div class="main-container">
         <div class="left-column">
             <div class="container">
                 <h1>Task Manager</h1>
+                
+                <!-- Dashboard Stats -->
+                <div class="dashboard">
+                    <div class="stat-card">
+                        <div class="stat-value" id="tasksToday">0</div>
+                        <div class="stat-label">Completed Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="timeTracked">0m</div>
+                        <div class="stat-label">Time Tracked Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeTasks">0</div>
+                        <div class="stat-label">Active Tasks</div>
+                    </div>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="search-filter">
+                    <input type="text" id="searchInput" placeholder="🔍 Search tasks...">
+                    <select id="filterPriority">
+                        <option value="">All Priorities</option>
+                        <option value="1">Urgent</option>
+                        <option value="2">Important</option>
+                        <option value="3">Can Wait</option>
+                        <option value="4">Planned</option>
+                    </select>
+                    <select id="filterCategory">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
                 <form id="taskForm">
                     <input type="text" id="taskName" placeholder="Task Name" required>
                     <input type="text" id="category" placeholder="Category" required>
                     <input type="number" id="estimatedTime" placeholder="Estimated Time (minutes)" required>
+                    <input type="datetime-local" id="dueDate" placeholder="Due Date">
+                    <input type="text" id="tags" placeholder="Tags (comma-separated)">
+                    <textarea id="notes" placeholder="Notes/Description" rows="2"></textarea>
                     <select id="priority" required>
                         <option value="1">1 - Urgent</option>
                         <option value="2">2 - Important</option>
@@ -23,6 +59,7 @@
                     </select>
                     <button type="submit">Add Task</button>
                     <button type="button" id="voiceInput">🎤 Voice Input</button>
+                    <button type="button" id="exportBtn">📥 Export</button>
                 </form>
                 <h2>Main Task List</h2>
                 <div id="taskList"></div>

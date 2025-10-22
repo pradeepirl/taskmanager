@@ -4,6 +4,125 @@ body {
     margin: 0;
     padding: 20px;
     overflow-x: hidden; /* Prevent horizontal overflow */
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .container {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .spreadsheet-section {
+    background-color: #2d2d2d;
+}
+
+body.dark-mode .spreadsheet th {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+}
+
+body.dark-mode .spreadsheet th,
+body.dark-mode .spreadsheet td {
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+body.dark-mode input,
+body.dark-mode select {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+body.dark-mode textarea {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+body.dark-mode h1,
+body.dark-mode h2 {
+    color: #e0e0e0;
+}
+
+body.dark-mode .task {
+    background-color: #3d3d3d;
+    border-bottom-color: #555;
+}
+
+body.dark-mode .task.priority-1 { background-color: #4d2d2d; }
+body.dark-mode .task.priority-2 { background-color: #4d3d2d; }
+body.dark-mode .task.priority-3 { background-color: #4d4d2d; }
+body.dark-mode .task.priority-4 { background-color: #2d4d2d; }
+
+.dark-mode-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #333;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
+    font-size: 1.2em;
+}
+
+.dark-mode-toggle:hover {
+    background-color: #555;
+}
+
+/* Tags styling */
+.tag {
+    display: inline-block;
+    background-color: #007bff;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    margin-right: 5px;
+}
+
+body.dark-mode .tag {
+    background-color: #0056b3;
+}
+
+/* Notes styling */
+.notes {
+    font-style: italic;
+    color: #666;
+    display: block;
+    margin-top: 5px;
+}
+
+body.dark-mode .notes {
+    color: #aaa;
+}
+
+/* Due date styling */
+.due-date {
+    font-weight: bold;
+}
+
+.due-date.due-soon {
+    color: #fd7e14;
+}
+
+.due-date.overdue {
+    color: #dc3545;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.5; }
 }
 
 .main-container {
@@ -62,6 +181,68 @@ input, select {
     color: #000000; /* Black text for inputs */
 }
 
+textarea {
+    padding: 5px;
+    flex: 1;
+    min-width: 150px;
+    color: #000000;
+    font-family: Arial, sans-serif;
+    resize: vertical;
+}
+
+/* Dashboard Styles */
+.dashboard {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 120px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+/* Search and Filter Styles */
+.search-filter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.search-filter input,
+.search-filter select {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Export button */
+#exportBtn {
+    background-color: #17a2b8;
+}
+
+#exportBtn:hover {
+    background-color: #138496;
+}
+
 button {
     padding: 5px 10px;
     background-color: #28a745; /* Green for Add Task button */
@@ -99,6 +280,12 @@ button:hover {
 .task.category-urgent { background-color: #f8d7da; }
 .task.category-learning { background-color: #fff3cd; }
 .task.category-default { background-color: #e2e3e5; }
+
+/* Priority-based color coding */
+.task.priority-1 { border-left: 5px solid #dc3545; background-color: #f8d7da; }
+.task.priority-2 { border-left: 5px solid #fd7e14; background-color: #ffe5d0; }
+.task.priority-3 { border-left: 5px solid #ffc107; background-color: #fff3cd; }
+.task.priority-4 { border-left: 5px solid #28a745; background-color: #d4edda; }
 
 .task button { 
     background-color: #007bff; /* Blue for Start button */
