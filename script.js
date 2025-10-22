@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const completedList = document.getElementById('completedList');
     const voiceInputBtn = document.getElementById('voiceInput');
     const darkModeToggle = document.getElementById('darkModeToggle');
+    const helpToggle = document.getElementById('helpToggle');
+    const helpModal = document.getElementById('helpModal');
+    const helpClose = document.getElementById('helpClose');
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
     let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
     let editingIndex = null;
@@ -21,6 +24,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('darkMode', isDark);
         darkModeToggle.textContent = isDark ? '☀️' : '🌙';
+    });
+
+    // Help modal
+    helpToggle.addEventListener('click', () => {
+        helpModal.classList.add('show');
+    });
+
+    helpClose.addEventListener('click', () => {
+        helpModal.classList.remove('show');
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target === helpModal) {
+            helpModal.classList.remove('show');
+        }
     });
 
     // Initialize missing fields
@@ -182,6 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const dueDateStr = task.dueDate ? `<br>Due: <span class="due-date ${isDueSoon(task.dueDate) ? 'due-soon' : ''} ${isOverdue(task.dueDate) ? 'overdue' : ''}">${new Date(task.dueDate).toLocaleString()}</span>` : '';
         const tagsStr = task.tags && task.tags.length > 0 ? `<br>Tags: ${task.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ')}` : '';
         const notesStr = task.notes ? `<br>Notes: <span class="notes">${task.notes}</span>` : '';
+        
+        // Calculate progress percentage
+        const progressPercent = task.estimatedTime > 0 ? Math.min((task.timeSoFar / task.estimatedTime) * 100, 100) : 0;
 
         if (editingIndex === index) {
             taskDiv.innerHTML = `
@@ -203,6 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <strong>${task.name}</strong> (${task.category}) - Priority: ${task.priority} (${priorityLabel})<br>
                 Start: ${startDate.toLocaleString()}<br>
                 Est. Time: ${task.estimatedTime / 60} min | Send Time: <span id="sendTime${index}">${sendTime.toLocaleString()}</span>${dueDateStr}${tagsStr}${notesStr}<br>
+                <div class="task-progress">
+                    <div class="task-progress-bar" id="progressBar${index}" style="width: ${progressPercent}%"></div>
+                </div>
                 Status: ${task.status} | Time So Far: <span id="timeSoFar${index}">${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}</span><br>
                 <div class="time-left">
                     Time Left: <span id="timeLeft${index}">${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}</span> 
@@ -421,11 +445,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timeLeftSpan = document.getElementById(`timeLeft${index}`);
                 const sendTimeSpan = document.getElementById(`sendTime${index}`);
                 const endTimeSpan = document.getElementById(`endTime${index}`);
+                const progressBar = document.getElementById(`progressBar${index}`);
 
                 if (timeSoFarSpan) timeSoFarSpan.textContent = `${Math.floor(task.timeSoFar / 60)}:${task.timeSoFar % 60 < 10 ? '0' : ''}${task.timeSoFar % 60}`;
                 if (timeLeftSpan) timeLeftSpan.textContent = `${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
                 if (sendTimeSpan) sendTimeSpan.textContent = new Date(start.getTime() + task.estimatedTime * 1000).toLocaleString();
                 if (endTimeSpan) endTimeSpan.textContent = endTime.toLocaleString();
+                
+                // Update progress bar
+                if (progressBar && task.estimatedTime > 0) {
+                    const progressPercent = Math.min((task.timeSoFar / task.estimatedTime) * 100, 100);
+                    progressBar.style.width = progressPercent + '%';
+                }
             }
         });
         saveTasks();
