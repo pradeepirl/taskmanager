@@ -7,14 +7,89 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <button class="dark-mode-toggle" id="darkModeToggle">🌙</button>
+    <button class="help-toggle" id="helpToggle">❓</button>
+    
+    <!-- Help Modal -->
+    <div class="help-modal" id="helpModal">
+        <div class="help-content">
+            <span class="help-close" id="helpClose">&times;</span>
+            <h2>Keyboard Shortcuts & Help</h2>
+            <div class="shortcuts">
+                <div class="shortcut-item">
+                    <kbd>Ctrl/Cmd + N</kbd>
+                    <span>Focus on new task input</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl/Cmd + F</kbd>
+                    <span>Focus on search</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl/Cmd + E</kbd>
+                    <span>Export tasks</span>
+                </div>
+                <div class="shortcut-item">
+                    <kbd>Ctrl/Cmd + D</kbd>
+                    <span>Toggle dark mode</span>
+                </div>
+            </div>
+            <h3>Features</h3>
+            <ul class="feature-list">
+                <li>🎨 <strong>Priority Colors:</strong> Red (Urgent), Orange (Important), Yellow (Can Wait), Green (Planned)</li>
+                <li>📊 <strong>Progress Bar:</strong> Visual indicator of time spent vs estimated</li>
+                <li>🏷️ <strong>Tags:</strong> Organize tasks with multiple tags</li>
+                <li>📝 <strong>Notes:</strong> Add detailed descriptions to tasks</li>
+                <li>⏰ <strong>Due Dates:</strong> Set deadlines with visual alerts</li>
+                <li>🔍 <strong>Search & Filter:</strong> Find tasks by name, category, or tags</li>
+                <li>📥 <strong>Export:</strong> Download your tasks as JSON</li>
+                <li>🌙 <strong>Dark Mode:</strong> Easy on the eyes at night</li>
+            </ul>
+        </div>
+    </div>
+    
     <div class="main-container">
         <div class="left-column">
             <div class="container">
                 <h1>Task Manager</h1>
+                
+                <!-- Dashboard Stats -->
+                <div class="dashboard">
+                    <div class="stat-card">
+                        <div class="stat-value" id="tasksToday">0</div>
+                        <div class="stat-label">Completed Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="timeTracked">0m</div>
+                        <div class="stat-label">Time Tracked Today</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="activeTasks">0</div>
+                        <div class="stat-label">Active Tasks</div>
+                    </div>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="search-filter">
+                    <input type="text" id="searchInput" placeholder="🔍 Search tasks...">
+                    <select id="filterPriority">
+                        <option value="">All Priorities</option>
+                        <option value="1">Urgent</option>
+                        <option value="2">Important</option>
+                        <option value="3">Can Wait</option>
+                        <option value="4">Planned</option>
+                    </select>
+                    <select id="filterCategory">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
                 <form id="taskForm">
                     <input type="text" id="taskName" placeholder="Task Name" required>
                     <input type="text" id="category" placeholder="Category" required>
                     <input type="number" id="estimatedTime" placeholder="Estimated Time (minutes)" required>
+                    <input type="datetime-local" id="dueDate" placeholder="Due Date">
+                    <input type="text" id="tags" placeholder="Tags (comma-separated)">
+                    <textarea id="notes" placeholder="Notes/Description" rows="2"></textarea>
                     <select id="priority" required>
                         <option value="1">1 - Urgent</option>
                         <option value="2">2 - Important</option>
@@ -23,6 +98,7 @@
                     </select>
                     <button type="submit">Add Task</button>
                     <button type="button" id="voiceInput">🎤 Voice Input</button>
+                    <button type="button" id="exportBtn">📥 Export</button>
                 </form>
                 <h2>Main Task List</h2>
                 <div id="taskList"></div>
